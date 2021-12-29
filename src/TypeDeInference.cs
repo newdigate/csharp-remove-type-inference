@@ -130,38 +130,63 @@ public class TypeDeInference : ITypeDeInference
 
         return a.WithType(replacement);
     }
+
+    private ITypeSymbol? GetEnumerationType(ITypeSymbol typeSymbol) {
+        if (typeSymbol is INamedTypeSymbol returnTypeNamedTypeSymbol){
+            if (returnTypeNamedTypeSymbol.ConstructedFrom.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>")
+            {
+                return returnTypeNamedTypeSymbol.TypeArguments[0];
+            }
+        }
+        INamedTypeSymbol? ienumerable = typeSymbol.AllInterfaces.FirstOrDefault( i => i.ConstructedFrom?.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>");
+        if (ienumerable != null) {
+            return ienumerable.TypeArguments[0];
+        }
+       
+        return null;
+    }
+
     private SyntaxNode? ReplaceForeachSyntaxWithDeinferedType(SemanticModel model, ForEachStatementSyntax a) {
         Microsoft.CodeAnalysis.TypeInfo typeInfo = model.GetTypeInfo(a.Expression);
-        INamedTypeSymbol? namedTypeSymbol = typeInfo.Type as INamedTypeSymbol;
-        if (namedTypeSymbol == null)
-            return a;
 
-        string? convertedType = typeInfo.ConvertedType?.ToDisplayString();
-        if (convertedType == null)
-            return a;
+        string? returnTypeEnumerable = null;
+        if (a.Expression is InvocationExpressionSyntax invocationExpressionSyntax) {
+            if (invocationExpressionSyntax.Expression is MemberAccessExpressionSyntax memberAccessExpressionSyntax) {  
+                string toLookup = memberAccessExpressionSyntax.Expression.ToFullString();
+                string methodName = memberAccessExpressionSyntax.Name.ToFullString();
+                ISymbol? classSymbol = model
+                    .LookupSymbols(a.SpanStart, null, toLookup, true)
+                    .FirstOrDefault();
+                if (classSymbol != null) {
+                    if (classSymbol is INamedTypeSymbol namedTypeSymbol1) {
+                        ISymbol? methodSymbol = namedTypeSymbol1.GetMembers().FirstOrDefault( m => m.Name == methodName);
+                        if (methodSymbol is IMethodSymbol methodSymbol1) {
+                            ITypeSymbol returnTypeSymbol = methodSymbol1.ReturnType;
+                            ISymbol? enumerableTypeSymbol = GetEnumerationType(returnTypeSymbol);
+                            if (enumerableTypeSymbol != null)
+                                returnTypeEnumerable = enumerableTypeSymbol.ToMinimalDisplayString(model, a.SpanStart);
+                        } 
+                    }
+                }
+            }
+        } else if (a.Expression is IdentifierNameSyntax identifierNameSyntax)  {
+            ISymbol? classSymbol = model
+                    .LookupSymbols(a.SpanStart, null, identifierNameSyntax.Identifier.ToFullString(), true)
+                    .FirstOrDefault();
+            if (classSymbol != null && classSymbol is ILocalSymbol localSymbol) {
+                ISymbol? enumerableTypeSymbol = GetEnumerationType(localSymbol.Type);
+                if (enumerableTypeSymbol != null)
+                    returnTypeEnumerable = enumerableTypeSymbol.ToMinimalDisplayString(model, a.SpanStart);
+            }
 
-        string? nameSpace = namedTypeSymbol.ContainingNamespace?.ToString();
-
-        string typeArgsString = String.Join(",", namedTypeSymbol.TypeArguments.OfType<INamedTypeSymbol>().Cast<INamedTypeSymbol>().Select( tp => tp.ContainingNamespace + "." +tp.Name));
-        string translatedTypeName = $"{nameSpace}.{typeInfo.ConvertedType?.OriginalDefinition?.Name}`{namedTypeSymbol.TypeArguments.Count()}[{typeArgsString}]";
-        Type? t = Type.GetType(translatedTypeName);
-        if (t == null) {
-            Assembly? ass = Assembly.LoadWithPartialName(typeInfo.ConvertedType.ContainingAssembly.Name);
-            t = ass?.GetType(translatedTypeName);
         }
-        if (t == null) return a;
-
-        MethodInfo? getEnumerator = t.GetMethod("GetEnumerator");
-        if (getEnumerator == null) return a;
-
-        Type? typeOfEnumerable = getEnumerator?.ReturnType.GetGenericArguments()?.FirstOrDefault();
-        if (typeOfEnumerable == null)
+        if (returnTypeEnumerable == null)
             return a;
-        
+
         TypeSyntax replacement = 
             SyntaxFactory
                 .IdentifierName(
-                    SyntaxFactory.Identifier( typeOfEnumerable.Name))
+                    SyntaxFactory.Identifier( returnTypeEnumerable))
                 .WithTriviaFrom(a.Type);
 
         return a.WithType(replacement);

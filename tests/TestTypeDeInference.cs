@@ -27,7 +27,8 @@ public class TestTypeDeInference {
 
     [Fact]
     public void TestDeInferVariableDeclarationStatement() {
-        const string source = @"public class NumberWang { 
+        const string source = @"using System;
+public class NumberWang { 
     public void Wang() {
         var x = 1;
         var z = (x == 1)? 10 : 100;
@@ -35,7 +36,8 @@ public class TestTypeDeInference {
         var t2 = new int[] {0, 1, 2, 3, 4, 5};
     }
 }";
-        const string expectedResult = @"public class NumberWang { 
+        const string expectedResult = @"using System;
+public class NumberWang { 
     public void Wang() {
         Int32 x = 1;
         Int32 z = (x == 1)? 10 : 100;
@@ -49,7 +51,7 @@ public class TestTypeDeInference {
     }
 
     [Fact]
-    public void TestDeInferForEachStatement() {
+    public void TestDeInferForEachStatementWithMemberAccessExpression() {
         const string source = @"using System.Linq;
 public class T {
     public void M() {
@@ -61,8 +63,34 @@ public class T {
         const string expectedResult = @"using System.Linq;
 public class T {
     public void M() {
-        foreach(Int32 s in Enumerable.Range(1, 10)) {
+        foreach(int s in Enumerable.Range(1, 10)) {
             System.Console.WriteLine(s);
+        }
+    }
+}";
+
+        string? deinferedSource = typeDeInference.RemoveTypeInference(source, defaultReferences);
+        Assert.Equal(expectedResult, deinferedSource);
+    }
+
+
+    [Fact]
+    public void TestDeInferForEachStatementWithArrayExpression() {
+        const string source = @"using System;
+public class T {
+    public void M() {
+        int[] intArray = new [] {1,2,3,4};
+        foreach(var s in intArray) {
+            Console.WriteLine(s);
+        }
+    }
+}";
+        const string expectedResult = @"using System;
+public class T {
+    public void M() {
+        int[] intArray = new [] {1,2,3,4};
+        foreach(int s in intArray) {
+            Console.WriteLine(s);
         }
     }
 }";
@@ -73,7 +101,8 @@ public class T {
 
     [Fact]
     public void TestDeinferMultipleCodeFiles() {
-        const string source1 = @"public class NumberWang { 
+        const string source1 = @"using System;
+public class NumberWang { 
     public void Wang() {
         var x = 1;
         var z = (x == 1)? 10 : 100;
@@ -81,7 +110,8 @@ public class T {
         var t2 = new int[] {0, 1, 2, 3, 4, 5};
     }
 }"; 
-        const string source2 = @"public class NumberWong { 
+        const string source2 = @"using System;
+public class NumberWong { 
     public void Wong() {
         var x = 1;
         var z = (x == 1)? 10 : 100;
@@ -90,7 +120,8 @@ public class T {
     }
 }"; 
 
-        const string expectedSource1Result = @"public class NumberWang { 
+        const string expectedSource1Result = @"using System;
+public class NumberWang { 
     public void Wang() {
         int x = 1;
         int z = (x == 1)? 10 : 100;
@@ -98,7 +129,8 @@ public class T {
         int[] t2 = new int[] {0, 1, 2, 3, 4, 5};
     }
 }"; 
-        const string expectedSource2Result = @"public class NumberWong { 
+        const string expectedSource2Result = @"using System;
+public class NumberWong { 
     public void Wong() {
         int x = 1;
         int z = (x == 1)? 10 : 100;
@@ -109,8 +141,8 @@ public class T {
 
         Dictionary<string, string> sourceByIdentifier = new Dictionary<string, string>() {{"a",source1}, {"b", source2}};
         IDictionary<string, string> results = typeDeInference.RemoveTypeInference(sourceByIdentifier.Keys, defaultReferences, ident => sourceByIdentifier[ident]);
-        Assert.Equal(results["a"], expectedSource1Result);
-        Assert.Equal(results["b"], expectedSource2Result);
+        Assert.Equal(expectedSource1Result, results["a"]);
+        Assert.Equal(expectedSource2Result, results["b"]);
     }
 
     [Fact]
