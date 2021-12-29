@@ -39,8 +39,8 @@ public class NumberWang {
         const string expectedResult = @"using System;
 public class NumberWang { 
     public void Wang() {
-        Int32 x = 1;
-        Int32 z = (x == 1)? 10 : 100;
+        int x = 1;
+        int z = (x == 1)? 10 : 100;
         Type t = GetType();
         int[] t2 = new int[] {0, 1, 2, 3, 4, 5};
     }
