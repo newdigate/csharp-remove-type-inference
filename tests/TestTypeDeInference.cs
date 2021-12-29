@@ -21,6 +21,7 @@ public class TestTypeDeInference {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.Console).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
                 MetadataReference.CreateFromFile(coreDir.FullName + Path.DirectorySeparatorChar + "System.Runtime.dll"),
             };
     }
@@ -51,6 +52,30 @@ public class NumberWang {
     }
 
     [Fact]
+    public void TestDeInferAsyncVariableDeclarationStatement() {
+        const string source = @"using System;
+using System.Threading.Tasks;
+public class NumberWang { 
+    public async Task Wang() {
+        var x = await Task.FromResult<int>(5);
+        var z = Task.FromResult<int>(5);
+    }
+}";
+        const string expectedResult = @"using System;
+using System.Threading.Tasks;
+public class NumberWang { 
+    public async Task Wang() {
+        int x = await Task.FromResult<int>(5);
+        Task<int> z = Task.FromResult<int>(5);
+    }
+}";
+
+        string? deinferedSource = typeDeInference.RemoveTypeInference(source, defaultReferences);
+        Assert.Equal(expectedResult, deinferedSource);
+    }
+
+
+    [Fact]
     public void TestDeInferForEachStatementWithMemberAccessExpression() {
         const string source = @"using System.Linq;
 public class T {
@@ -75,7 +100,7 @@ public class T {
 
 
     [Fact]
-    public void TestDeInferForEachStatementWithArrayExpression() {
+    public void TestDeInferForEachStatementWithLocalArrayExpression() {
         const string source = @"using System;
 public class T {
     public void M() {
@@ -89,6 +114,31 @@ public class T {
 public class T {
     public void M() {
         int[] intArray = new [] {1,2,3,4};
+        foreach(int s in intArray) {
+            Console.WriteLine(s);
+        }
+    }
+}";
+
+        string? deinferedSource = typeDeInference.RemoveTypeInference(source, defaultReferences);
+        Assert.Equal(expectedResult, deinferedSource);
+    }
+    
+    [Fact]
+    public void TestDeInferForEachStatementWithNonLocalArrayExpression() {
+        const string source = @"using System;
+public class T {
+    private int[] intArray = new [] {1,2,3,4};
+    public void M() {
+        foreach(var s in intArray) {
+            Console.WriteLine(s);
+        }
+    }
+}";
+        const string expectedResult = @"using System;
+public class T {
+    private int[] intArray = new [] {1,2,3,4};
+    public void M() {
         foreach(int s in intArray) {
             Console.WriteLine(s);
         }
@@ -177,3 +227,5 @@ public class NumberWong {
         }
     }
 }
+
+

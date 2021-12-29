@@ -103,14 +103,14 @@ public class TypeDeInference : ITypeDeInference
         return compilation;
     }
 
-    private SyntaxNode? ReplaceVariableDeclarationSyntaxWithDeinferedType(SemanticModel model, VariableDeclarationSyntax a) {
+    private SyntaxNode ReplaceVariableDeclarationSyntaxWithDeinferedType(SemanticModel model, VariableDeclarationSyntax a) {
         SyntaxNode? expression = a.Variables.FirstOrDefault()?.Initializer?.Value;
         if (expression == null)
-            return null;
+            return a;
 
         Microsoft.CodeAnalysis.TypeInfo typeInfo = model.GetTypeInfo(expression);
         if (typeInfo.ConvertedType == null)
-            return null;
+            return a;
 
         string replacementTypeName = typeInfo.ConvertedType.ToMinimalDisplayString(model, NullableFlowState.None, a.SpanStart);
         TypeSyntax replacement = 
@@ -164,8 +164,17 @@ public class TypeDeInference : ITypeDeInference
             ISymbol? classSymbol = model
                     .LookupSymbols(a.SpanStart, null, identifierNameSyntax.Identifier.ToFullString(), true)
                     .FirstOrDefault();
-            if (classSymbol != null && classSymbol is ILocalSymbol localSymbol) {
-                ISymbol? enumerableTypeSymbol = GetEnumerationType(localSymbol.Type);
+            if (classSymbol != null){ 
+                ITypeSymbol? typeSymbol = null;
+                if (classSymbol is ILocalSymbol localSymbol) {
+                    typeSymbol = localSymbol.Type;
+                } else if (classSymbol is IFieldSymbol fieldSymbol) {
+                    typeSymbol = fieldSymbol.Type;
+                }
+                if (typeSymbol == null)
+                    return a;
+
+                ISymbol? enumerableTypeSymbol = GetEnumerationType(typeSymbol);
                 if (enumerableTypeSymbol != null)
                     returnTypeEnumerable = enumerableTypeSymbol.ToMinimalDisplayString(model, a.SpanStart);
             }
