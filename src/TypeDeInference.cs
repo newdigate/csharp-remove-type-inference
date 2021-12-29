@@ -112,21 +112,12 @@ public class TypeDeInference : ITypeDeInference
         if (typeInfo.ConvertedType == null)
             return null;
 
-        TypeSyntax replacement;
-        if (typeInfo.ConvertedType is IArrayTypeSymbol arrayTypeSymbol) {
-            replacement = 
-                SyntaxFactory
-                    .IdentifierName(
-                        SyntaxFactory.Identifier(arrayTypeSymbol.ToDisplayString()))
-                    .WithTriviaFrom(a.Type);
-        } else {
-            string replacementTypeName = typeInfo.ConvertedType.ToMinimalDisplayString(model, NullableFlowState.None, a.SpanStart);
-            replacement = 
-                SyntaxFactory
-                    .IdentifierName(
-                        SyntaxFactory.Identifier(replacementTypeName))
-                    .WithTriviaFrom(a.Type);
-        }
+        string replacementTypeName = typeInfo.ConvertedType.ToMinimalDisplayString(model, NullableFlowState.None, a.SpanStart);
+        TypeSyntax replacement = 
+            SyntaxFactory
+                .IdentifierName(
+                    SyntaxFactory.Identifier(replacementTypeName))
+                .WithTriviaFrom(a.Type);
 
         return a.WithType(replacement);
     }
