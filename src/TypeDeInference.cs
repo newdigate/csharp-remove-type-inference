@@ -6,9 +6,16 @@ namespace type_deinference;
 
 public class TypeDeInference : ITypeDeInference
 {
-    public string? RemoveTypeInference(string source, IEnumerable<MetadataReference> references)
+    private readonly IEnumerable<MetadataReference> references;
+
+    public TypeDeInference(IEnumerable<MetadataReference> references)
     {
-        IDictionary<string, string> result = RemoveTypeInference(new [] { string.Empty }, references, s => source);
+        this.references = references;
+    }
+
+    public string? RemoveTypeInference(string source)
+    {
+        IDictionary<string, string> result = RemoveTypeInference(new [] { string.Empty }, s => source);
         if (result.ContainsKey(string.Empty))
             return result[string.Empty];
         return null;
@@ -16,7 +23,6 @@ public class TypeDeInference : ITypeDeInference
 
     public IDictionary<string, string> RemoveTypeInference(
         IEnumerable<string> sourceIdentifiers, 
-        IEnumerable<MetadataReference> references,
         Func<string, string> getSourceFromIdentifier)
     {
         Dictionary<string, string> sourceCodeByIdentifier = new Dictionary<string, string>();
@@ -27,7 +33,6 @@ public class TypeDeInference : ITypeDeInference
         CSharpCompilation compilation = 
             CompileCSharp(
                 sourceCodeByIdentifier.Values, 
-                references,
                 out IDictionary<SyntaxTree, CompilationUnitSyntax> trees);
 
         Func<SyntaxTree, string> fnKeyForSyntaxTree = 
@@ -75,7 +80,6 @@ public class TypeDeInference : ITypeDeInference
 
     private CSharpCompilation CompileCSharp(
         IEnumerable<string> sourceCodes, 
-        IEnumerable<MetadataReference> references,
         out IDictionary<SyntaxTree, CompilationUnitSyntax> roots) 
     {
         Dictionary<SyntaxTree, CompilationUnitSyntax> syntaxTrees = new Dictionary<SyntaxTree, CompilationUnitSyntax>();

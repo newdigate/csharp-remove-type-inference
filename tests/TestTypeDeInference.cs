@@ -6,7 +6,7 @@ namespace type_deinference;
 
 public class TestTypeDeInference {
 
-    private readonly ITypeDeInference typeDeInference = new TypeDeInference();
+    private readonly ITypeDeInference _typeDeInference;
     
     private readonly IEnumerable<MetadataReference> defaultReferences;
 
@@ -21,9 +21,9 @@ public class TestTypeDeInference {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.Console).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(System.Threading.Tasks.Task).Assembly.Location),
                 MetadataReference.CreateFromFile(coreDir.FullName + Path.DirectorySeparatorChar + "System.Runtime.dll"),
             };
+        _typeDeInference = new TypeDeInference(defaultReferences);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class NumberWang {
     }
 }";
 
-        string? deinferedSource = typeDeInference.RemoveTypeInference(source, defaultReferences);
+        string? deinferedSource = _typeDeInference.RemoveTypeInference(source);
         Assert.Equal(expectedResult, deinferedSource);
     }
 
@@ -70,7 +70,7 @@ public class NumberWang {
     }
 }";
 
-        string? deinferedSource = typeDeInference.RemoveTypeInference(source, defaultReferences);
+        string? deinferedSource = _typeDeInference.RemoveTypeInference(source);
         Assert.Equal(expectedResult, deinferedSource);
     }
 
@@ -94,7 +94,7 @@ public class T {
     }
 }";
 
-        string? deinferedSource = typeDeInference.RemoveTypeInference(source, defaultReferences);
+        string? deinferedSource = _typeDeInference.RemoveTypeInference(source);
         Assert.Equal(expectedResult, deinferedSource);
     }
 
@@ -120,7 +120,7 @@ public class T {
     }
 }";
 
-        string? deinferedSource = typeDeInference.RemoveTypeInference(source, defaultReferences);
+        string? deinferedSource = _typeDeInference.RemoveTypeInference(source);
         Assert.Equal(expectedResult, deinferedSource);
     }
     
@@ -145,7 +145,7 @@ public class T {
     }
 }";
 
-        string? deinferedSource = typeDeInference.RemoveTypeInference(source, defaultReferences);
+        string? deinferedSource = _typeDeInference.RemoveTypeInference(source);
         Assert.Equal(expectedResult, deinferedSource);
     }
 
@@ -190,7 +190,7 @@ public class NumberWong {
 }"; 
 
         Dictionary<string, string> sourceByIdentifier = new Dictionary<string, string>() {{"a",source1}, {"b", source2}};
-        IDictionary<string, string> results = typeDeInference.RemoveTypeInference(sourceByIdentifier.Keys, defaultReferences, ident => sourceByIdentifier[ident]);
+        IDictionary<string, string> results = _typeDeInference.RemoveTypeInference(sourceByIdentifier.Keys, ident => sourceByIdentifier[ident]);
         Assert.Equal(expectedSource1Result, results["a"]);
         Assert.Equal(expectedSource2Result, results["b"]);
     }
@@ -198,7 +198,7 @@ public class NumberWong {
     [Fact]
     public async Task TestDeinferProject() {
         const string projectPath = "../csharp-remove-type-inference/src/type-deinference.csproj";
-        SolutionDeInference solutionDeInference = new SolutionDeInference(new TypeDeInference());
+        SolutionDeInference solutionDeInference = new SolutionDeInference(_typeDeInference);
         try {
             IDictionary<string, string> results = await solutionDeInference.RemoveTypeInferenceFromProject(projectPath);
             foreach(KeyValuePair<string,string> kvp in results) {
@@ -214,8 +214,7 @@ public class NumberWong {
     [Fact]
     public async Task TestDeinferSolution() {
         const string solutionPath = "../../Architecture/source/Architecture.sln";
-        SolutionDeInference solutionDeInference = new SolutionDeInference(new TypeDeInference());
-
+        SolutionDeInference solutionDeInference = new SolutionDeInference(_typeDeInference);
         try {
             IDictionary<string, string> results = await solutionDeInference.RemoveTypeInferenceFromSolution(solutionPath);
             foreach(KeyValuePair<string,string> kvp in results){
