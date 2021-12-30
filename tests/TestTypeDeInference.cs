@@ -98,7 +98,30 @@ public class T {
         Assert.Equal(expectedResult, deinferedSource);
     }
 
-
+    [Fact]
+    public void TestDeInferForEachStatementWithPropertyArrayExpression() {
+        const string source = @"using System;
+public class T {
+    public int[] intArray { get; set; } = new [] {1,2,3,4};
+    public void M() {
+        foreach(var s in intArray) {
+            Console.WriteLine(s);
+        }
+    }
+}";
+        const string expectedResult = @"using System;
+public class T {
+    public int[] intArray { get; set; } = new [] {1,2,3,4};
+    public void M() {
+        foreach(int s in intArray) {
+            Console.WriteLine(s);
+        }
+    }
+}";
+        string? deinferedSource = _typeDeInference.RemoveTypeInference(source);
+        Assert.Equal(expectedResult, deinferedSource);
+    }
+    
     [Fact]
     public void TestDeInferForEachStatementWithLocalArrayExpression() {
         const string source = @"using System;

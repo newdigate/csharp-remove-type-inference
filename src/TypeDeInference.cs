@@ -174,6 +174,8 @@ public class TypeDeInference : ITypeDeInference
                     typeSymbol = localSymbol.Type;
                 } else if (classSymbol is IFieldSymbol fieldSymbol) {
                     typeSymbol = fieldSymbol.Type;
+                } else if (classSymbol is IPropertySymbol propertySymbol) {
+                    typeSymbol = propertySymbol.Type;
                 }
                 if (typeSymbol == null)
                     return a;
