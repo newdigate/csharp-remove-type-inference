@@ -17,6 +17,8 @@ public class T {
         var z = (x == 1)? 10 : 100;
         var t = GetType();
         var t2 = new int[] {0, 1, 2, 3, 4, 5};
+        var x = await Task.FromResult<int>(5);
+        var z = Task.FromResult<int>(5);
     }
 }
 ``` 
@@ -33,6 +35,8 @@ public class T {
         int z = (x == 1)? 10 : 100;
         Type t = GetType();
         int[] t2 = new int[] {0, 1, 2, 3, 4, 5};
+        int x = await Task.FromResult<int>(5);
+        Task<int> z = Task.FromResult<int>(5);
     }
 }
 ```
